@@ -52,10 +52,31 @@
 
 #include "mmc-twl4030.h"
 
+#include <media/v4l2-int-device.h>
+
+#if defined(CONFIG_VIDEO_IMX046) || defined(CONFIG_VIDEO_IMX046_MODULE)
+#include <media/imx046.h>
+extern struct imx046_platform_data zoom2_imx046_platform_data;
+#endif
+
+extern void zoom2_cam_init(void);
+
+#ifdef CONFIG_VIDEO_LV8093
+#include <media/lv8093.h>
+extern struct imx046_platform_data zoom2_lv8093_platform_data;
+#define LV8093_PS_GPIO			7
+/* GPIO7 is connected to lens PS pin through inverter */
+#define LV8093_PWR_OFF			1
+#define LV8093_PWR_ON			(!LV8093_PWR_OFF)
+#endif
+
 #ifndef CONFIG_TWL4030_CORE
 #error "no power companion board defined!"
 #endif
 
+#ifdef CONFIG_WL127X_RFKILL
+#include <linux/wl127x-rfkill.h>
+#endif
 
 #define ZOOM2_QUART_PHYS        0x10000000
 #define ZOOM2_QUART_VIRT        0xFB000000
@@ -71,9 +92,6 @@
 #define ENABLE_VAUX3_DEDICATED  0x03
 #define ENABLE_VAUX3_DEV_GRP  	0x20
 #define TWL4030_MSECURE_GPIO	22
-
-#define TWL4030_VAUX4_DEV_GRP	0x23
-#define TWL4030_VAUX4_DEDICATED	0x26
 
 static struct resource zoom2_smc911x_resources[] = {
 	[0] = {
@@ -95,17 +113,15 @@ static struct platform_device zoom2_smc911x_device = {
 	.resource	= zoom2_smc911x_resources,
 };
 
-#ifdef CONFIG_WL127X_POWER
-static int wl127x_gpios[] = {
-	109,    /* Bluetooth Enable GPIO */
-	161,    /* FM Enable GPIO */
-	61,     /* BT Active LED */
+#ifdef CONFIG_WL127X_RFKILL
+static struct wl127x_rfkill_platform_data wl127x_plat_data = {
+	.nshutdown_gpio = 109, 	/* Bluetooth Enable GPIO */
 };
 
 static struct platform_device zoom2_wl127x_device = {
-	.name           = "wl127x",
+	.name           = "wl127x-rfkill",
 	.id             = -1,
-	.dev.platform_data = &wl127x_gpios,
+	.dev.platform_data = &wl127x_plat_data,
 };
 #endif
 
@@ -245,30 +261,19 @@ static struct spi_board_info zoom2_spi_board_info[] __initdata = {
 
 #define t2_out(c, r, v) twl4030_i2c_write_u8(c, r, v)
 
-
-static int zoom2_panel_enable_lcd(struct omap_display *display)
-{
-	return 0;
-}
-
-static void zoom2_panel_disable_lcd(struct omap_display *display)
-{
-}
-
-static struct omap_dss_display_config zoom2_display_data_lcd = {
+static struct omap_dss_device zoom2_display_data_lcd = {
 	.type = OMAP_DISPLAY_TYPE_DPI,
 	.name = "lcd",
-	.panel_name = "panel-zoom2",
-	.u.dpi.data_lines = 24,
-	.panel_enable = zoom2_panel_enable_lcd,
-	.panel_disable = zoom2_panel_disable_lcd,
+	.driver_name = "panel-zoom2",
+	.phy.dpi.data_lines = 24,
  };
 
 static struct omap_dss_board_info zoom2_dss_data = {
-	.num_displays = 1,
-	.displays = {
+	.num_devices = 1,
+	.devices = {
 		&zoom2_display_data_lcd,
-	}
+	},
+	.default_device = &zoom2_display_data_lcd,
 };
 
 static struct platform_device zoom2_dss_device = {
@@ -282,7 +287,7 @@ static struct platform_device zoom2_dss_device = {
 static struct platform_device *zoom2_devices[] __initdata = {
 	&zoom2_dss_device,
 	&zoom2_smc911x_device,
-#ifdef CONFIG_WL127X_POWER
+#ifdef CONFIG_WL127X_RFKILL
 	&zoom2_wl127x_device,
 #endif
 	&omap_hdq_device,
@@ -417,6 +422,11 @@ static struct twl4030_hsmmc_info mmc[] __initdata = {
 		.wires		= 4,
 		.gpio_wp	= -EINVAL,
 	},
+	{
+		.mmc		= 3,
+		.wires		= 4,
+		.gpio_wp	= -EINVAL,
+	},
 	{}      /* Terminator */
 };
 
@@ -543,6 +553,18 @@ static struct i2c_board_info __initdata zoom2_i2c_bus2_info[] = {
 		.platform_data = &synaptics_platform_data,
 		.irq = OMAP_GPIO_IRQ(OMAP_SYNAPTICS_GPIO),
 	},
+#if defined(CONFIG_VIDEO_IMX046) || defined(CONFIG_VIDEO_IMX046_MODULE)
+	{
+		I2C_BOARD_INFO("imx046", IMX046_I2C_ADDR),
+		.platform_data = &zoom2_imx046_platform_data,
+	},
+#endif
+#ifdef CONFIG_VIDEO_LV8093
+	{
+		I2C_BOARD_INFO(LV8093_NAME,  LV8093_AF_I2C_ADDR),
+		.platform_data = &zoom2_lv8093_platform_data,
+	},
+#endif
 };
 
 static int __init omap_i2c_init(void)
@@ -577,6 +599,7 @@ static void __init omap_zoom2_init(void)
 	omap_serial_init();
 	usb_musb_init();
 	config_wlan_gpio();
+	zoom2_cam_init();
 }
 
 static struct map_desc zoom2_io_desc[] __initdata = {

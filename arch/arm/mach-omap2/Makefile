@@ -35,12 +35,19 @@ obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
 obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
 obj-$(CONFIG_OMAP_PM_SRF)		+=  resource34xx.o
 
+obj-$(CONFIG_MPU_BRIDGE)		+= dspbridge.o
+
 # DSP
 obj-$(CONFIG_OMAP_MBOX_FWK)	+= mailbox_mach.o
 mailbox_mach-objs		:= mailbox.o
 
 # Debobs
 obj-$(CONFIG_OMAP3_DEBOBS)	+= debobs.o
+
+iommu-y					+= iommu2.o
+iommu-$(CONFIG_ARCH_OMAP3)		+= omap3-iommu.o
+
+obj-$(CONFIG_OMAP_IOMMU)		+= $(iommu-y)
 
 # Specific board support
 obj-$(CONFIG_MACH_OMAP_GENERIC)		+= board-generic.o
@@ -64,7 +71,8 @@ obj-$(CONFIG_MACH_OMAP_LDP)		+= board-ldp.o \
 					   mmc-twl4030.o
 obj-$(CONFIG_MACH_OMAP_ZOOM2)		+= board-zoom2.o \
 					   mmc-twl4030.o \
-	                                   board-ldp-flash.o \
+					   board-ldp-flash.o \
+					   board-zoom2-camera.o \
 					   board-zoom2-wifi.o
 obj-$(CONFIG_MACH_OMAP_APOLLON)		+= board-apollon.o \
 					   board-apollon-mmc.o	\
@@ -90,11 +98,10 @@ obj-$(CONFIG_MACH_OMAP3_PANDORA)	+= board-omap3pandora.o \
 					   mmc-twl4030.o
 
 # Platform specific device init code
-obj-$(CONFIG_USB_MUSB_SOC)		+= usb-musb.o
+obj-y								+= usb-musb.o
 obj-$(CONFIG_MACH_OMAP2_TUSB6010)	+= usb-tusb6010.o
 
 ifneq ($(CONFIG_USB_EHCI_HCD),)
 	obj-y				+= usb-ehci.o
 endif
-
 
