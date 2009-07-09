@@ -1002,7 +1002,11 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 
 	mmc->ops	= &mmc_omap_ops;
 	mmc->f_min	= 400000;
+#ifndef CONFIG_AZWAVE_HACK_FOR_GH600_ON_BEAGLEBOARD
 	mmc->f_max	= 52000000;
+#else
+	mmc->f_max	= 24000000;
+#endif
 
 	sema_init(&host->sem, 1);
 
