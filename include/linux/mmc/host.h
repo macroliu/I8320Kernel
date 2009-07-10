@@ -214,5 +214,14 @@ struct regulator;
 int mmc_regulator_get_ocrmask(struct regulator *supply);
 int mmc_regulator_set_ocr(struct regulator *supply, unsigned short vdd_bit);
 
+#ifdef CONFIG_MMC_DEBUG_INDIVIDUAL
+#define mmc_pr_debug(host, fmt, ...) do { 	\
+			if (CONFIG_MMC_DEBUG_CHANNEL == (host->index)) 	\
+				pr_debug(fmt, ##__VA_ARGS__); 	\
+		} while (0)
+#else
+#define mmc_pr_debug(host, fmt, ...) 	pr_debug(fmt, ##__VA_ARGS__)
+#endif
+
 #endif
 
