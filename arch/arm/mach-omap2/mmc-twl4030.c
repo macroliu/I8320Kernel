@@ -327,14 +327,6 @@ static int twl_mmc23_set_power(struct device *dev, int slot, int power_on, int v
 	 * chips/cards need an interface voltage rail too.
 	 */
 	if (power_on) {
-		/* only MMC2 supports a CLKIN */
-		if (mmc->slots[0].internal_clock) {
-			u32 reg;
-
-			reg = omap_ctrl_readl(control_devconf1_offset);
-			reg |= OMAP2_MMCSDIO2ADPCLKISEL;
-			omap_ctrl_writel(reg, control_devconf1_offset);
-		}
 		ret = mmc_regulator_set_ocr(c->vcc, vdd);
 		/* enable interface voltage rail, if needed */
 		if (ret == 0 && c->vcc_aux) {
@@ -454,8 +446,17 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 		case 2:
 			if (c->ext_clock)
 				c->transceiver = 1;
+			else {
+				/* enable internal clock, MMC2 only */
+				u32 reg;
+
+				reg = omap_ctrl_readl(control_devconf1_offset);
+				reg |= OMAP2_MMCSDIO2ADPCLKISEL;
+				omap_ctrl_writel(reg, control_devconf1_offset);
+			}
 			if (c->transceiver && c->wires > 4)
 				c->wires = 4;
+			mmc->slots[0].set_power = twl_mmc23_set_power;
 			/* FALLTHROUGH */
 		case 3:
 			/* off-chip level shifting, or none */
