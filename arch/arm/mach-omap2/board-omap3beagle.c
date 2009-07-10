@@ -47,6 +47,7 @@
 #include <mach/display.h>
 #include <mach/omap-pm.h>
 #include <mach/clock.h>
+#include <mach/mmc.h>
 
 #include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
@@ -226,6 +227,13 @@ static struct twl4030_hsmmc_info mmc[] = {
 		.mmc		= 1,
 		.wires		= 8,
 		.gpio_wp	= 29,
+	},
+	{
+       .mmc        = 2,
+       .wires      = 4,
+       .gpio_wp    = -EINVAL,
+       .ext_clock  = 0,
+       .ocr_mask   = MMC_VDD_165_195,
 	},
 	{}	/* Terminator */
 };
