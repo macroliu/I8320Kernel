@@ -88,4 +88,13 @@ config ANDROID_LOW_MEMORY_KILLER
 	---help---
 	  Register processes to be killed when memory is low
 
+config ANDROID_KEYBOARD_EMULATION
+	bool "Keyboard emulation"
+	depends on INPUT && SERIO
+	default N
+	---help---
+	  For environment without rich input devices, it is
+	  convenient to emulate the keystroke reporting to
+	  upper applications.
+
 endmenu
