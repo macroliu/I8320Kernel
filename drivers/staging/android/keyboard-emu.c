@@ -1,6 +1,7 @@
 /*
    keyboard emulator project
 
+   Copyright (C) 2009 Jim Huang <jserv@0xlab.org>, 0xlab.org
    Copyright (C) 2007 Gunnar Teege <gunnar.teege@unibw-muenchen.de>
    Copyright (C) 1998-2007 Reznic Valery <valery_reznic@users.sourceforge.net>
 
@@ -27,14 +28,15 @@
 #include <asm/uaccess.h>
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
-#define kbde_MAJOR 11 /* As define for the SPARC keyboard */
-static int major = kbde_MAJOR;
+#define KBDE_MAJOR 11
+/* As define for the SPARC keyboard */
+static int kbde_major = KBDE_MAJOR;
 
 MODULE_AUTHOR("Valery Reznic <valery_reznic@users.sourceforge.net>");
 MODULE_DESCRIPTION("Keyboard (i386) emulator");
 MODULE_LICENSE("GPL");
-module_param(major, int, 0);
-MODULE_PARM_DESC(major, "major number for kbde driver");
+module_param(kbde_major, int, 0);
+MODULE_PARM_DESC(kbde_major, "major number for kbde driver");
 
 /* We register this device as a serial bus driver to be able to
    feed the scancode to the keyboard driver which also handles the normal
@@ -61,13 +63,11 @@ static void serio_kbde_close(struct serio *port)
 
 static int kbde_open(struct inode *inode, struct file *file)
 {
-	//printk("kbde module has been opened\n");
 	return 0;
 }
 
 static int kbde_release(struct inode *inode, struct file *file)
 {
-	//printk("kbde module has been closed\n");
 	return 0;
 }
 
@@ -100,11 +100,22 @@ static struct file_operations kbde_fops = {
 	.release = kbde_release
 };
 
+static struct class *kbde_class;
+
 static int __init kbde_init(void)
 {
-	if (register_chrdev(major, "kbde", &kbde_fops)) {
-		printk("kbde: can't get major %d\n", major);
+	if (register_chrdev(KBDE_MAJOR, "kbde", &kbde_fops)) {
+		printk(KERN_ERR "Unable to get major %d for kbde\n",
+		       KBDE_MAJOR);
 		return(-EIO);
+	}
+
+	kbde_class = class_create(THIS_MODULE, "kbde");
+	device_create(kbde_class, NULL, MKDEV(KBDE_MAJOR, 0), NULL, "kbde");
+	if (IS_ERR(kbde_class)) {
+		printk(KERN_ERR "Unable to create kbde class; errno = %ld\n",
+		       PTR_ERR(kbde_class));
+		kbde_class = NULL;
 	}
 
 	kbde_port = kmalloc(sizeof (struct serio), GFP_KERNEL);
@@ -145,9 +156,10 @@ static int __init kbde_init(void)
 
 static void __exit kbde_exit(void)
 {
-	unregister_chrdev(major, "kbde");
+	unregister_chrdev(KBDE_MAJOR, "kbde");
 	/* unregister this driver as serial io port */
 	serio_unregister_port(kbde_port);
+	device_destroy(kbde_class, MKDEV(KBDE_MAJOR, 0));
 	printk("kbde: unloaded\n");
 }
 
