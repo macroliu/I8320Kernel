@@ -100,7 +100,7 @@ static struct file_operations kbde_fops = {
 	.release = kbde_release
 };
 
-static struct class *kbde_class;
+static struct class *kbde_class = NULL;
 
 static int __init kbde_init(void)
 {
@@ -111,11 +111,13 @@ static int __init kbde_init(void)
 	}
 
 	kbde_class = class_create(THIS_MODULE, "kbde");
-	device_create(kbde_class, NULL, MKDEV(KBDE_MAJOR, 0), NULL, "kbde");
 	if (IS_ERR(kbde_class)) {
 		printk(KERN_ERR "Unable to create kbde class; errno = %ld\n",
 		       PTR_ERR(kbde_class));
 		kbde_class = NULL;
+	}
+	else {
+		device_create(kbde_class, NULL, MKDEV(KBDE_MAJOR, 0), NULL, "kbde");
 	}
 
 	kbde_port = kmalloc(sizeof (struct serio), GFP_KERNEL);
@@ -159,7 +161,10 @@ static void __exit kbde_exit(void)
 	unregister_chrdev(KBDE_MAJOR, "kbde");
 	/* unregister this driver as serial io port */
 	serio_unregister_port(kbde_port);
-	device_destroy(kbde_class, MKDEV(KBDE_MAJOR, 0));
+	if (kbde_class) {
+		device_destroy(kbde_class, MKDEV(KBDE_MAJOR, 0));
+		class_destroy(kbde_class);
+	}
 	printk("kbde: unloaded\n");
 }
 
