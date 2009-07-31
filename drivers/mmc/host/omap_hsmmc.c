@@ -106,6 +106,15 @@
 #define OMAP_MMC_MASTER_CLOCK	96000000
 #define DRIVER_NAME		"mmci-omap-hs"
 
+#ifdef CONFIG_MMC_DEBUG_INDIVIDUAL
+#define omap_dev_dbg(host, fmt, ...) do { 	\
+			if (CONFIG_MMC_DEBUG_CHANNEL == (host->mmc->index)) 	\
+				dev_dbg(fmt, ##__VA_ARGS__); 	\
+		} while (0)
+#else
+#define omap_dev_dbg(host, fmt, ...) 	dev_dbg(fmt, ##__VA_ARGS__)
+#endif
+
 /*
  * One controller can have multiple slots, like on some omap boards using
  * omap.c controller driver. Luckily this is not currently done on any known
@@ -160,7 +169,7 @@ static void omap_mmc_stop_clock(struct mmc_omap_host *host)
 	OMAP_HSMMC_WRITE(host->base, SYSCTL,
 		OMAP_HSMMC_READ(host->base, SYSCTL) & ~CEN);
 	if ((OMAP_HSMMC_READ(host->base, SYSCTL) & CEN) != 0x0)
-		dev_dbg(mmc_dev(host->mmc), "MMC Clock is not stoped\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "MMC Clock is not stoped\n");
 }
 
 /*
@@ -232,7 +241,7 @@ mmc_omap_start_command(struct mmc_omap_host *host, struct mmc_command *cmd,
 {
 	int cmdreg = 0, resptype = 0, cmdtype = 0;
 
-	dev_dbg(mmc_dev(host->mmc), "%s: CMD%d, argument 0x%08x\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s: CMD%d, argument 0x%08x\n",
 		mmc_hostname(host->mmc), cmd->opcode, cmd->arg);
 	host->cmd = cmd;
 
@@ -372,7 +381,7 @@ static void mmc_omap_report_irq(struct mmc_omap_host *host, u32 status)
 			buf += len;
 		}
 
-	dev_dbg(mmc_dev(host->mmc), "%s\n", res);
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s\n", res);
 }
 #endif  /* CONFIG_MMC_DEBUG */
 
@@ -420,7 +429,7 @@ static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 
 	data = host->data;
 	status = OMAP_HSMMC_READ(host->base, STAT);
-	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
+	omap_dev_dbg(host, mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
 	if (status & ERR) {
 #ifdef CONFIG_MMC_DEBUG
@@ -454,7 +463,7 @@ static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 			}
 		}
 		if (status & CARD_ERR) {
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 				"Ignoring card err CMD%d\n", host->cmd->opcode);
 			if (host->cmd)
 				end_cmd = 1;
@@ -538,7 +547,7 @@ static int omap_mmc_switch_opcond(struct mmc_omap_host *host, int vdd)
 
 	return 0;
 err:
-	dev_dbg(mmc_dev(host->mmc), "Unable to switch operating voltage\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "Unable to switch operating voltage\n");
 	return ret;
 }
 
@@ -582,7 +591,7 @@ static void mmc_omap_dma_cb(int lch, u16 ch_status, void *data)
 	struct mmc_omap_host *host = data;
 
 	if (ch_status & OMAP2_DMA_MISALIGNED_ERR_IRQ)
-		dev_dbg(mmc_dev(host->mmc), "MISALIGNED_ADRS_ERR\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "MISALIGNED_ADRS_ERR\n");
 
 	if (host->dma_ch < 0)
 		return;
@@ -676,7 +685,7 @@ mmc_omap_start_dma_transfer(struct mmc_omap_host *host, struct mmc_request *req)
 	ret = omap_request_dma(sync_dev, "MMC/SD", mmc_omap_dma_cb,
 			host, &dma_ch);
 	if (ret != 0) {
-		dev_dbg(mmc_dev(host->mmc),
+		omap_dev_dbg(host, mmc_dev(host->mmc),
 			"%s: omap_request_dma() failed with %d\n",
 			mmc_hostname(host->mmc), ret);
 		return ret;
@@ -766,7 +775,7 @@ mmc_omap_prepare_data(struct mmc_omap_host *host, struct mmc_request *req)
 	if (host->use_dma) {
 		ret = mmc_omap_start_dma_transfer(host, req);
 		if (ret != 0) {
-			dev_dbg(mmc_dev(host->mmc), "MMC start dma failure\n");
+			omap_dev_dbg(host, mmc_dev(host->mmc), "MMC start dma failure\n");
 			return ret;
 		}
 	}
@@ -842,7 +851,7 @@ static void omap_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				 * vdd 1.8v.
 				 */
 				if (omap_mmc_switch_opcond(host, ios->vdd) != 0)
-					dev_dbg(mmc_dev(host->mmc),
+					omap_dev_dbg(host, mmc_dev(host->mmc),
 						"Switch operation failed\n");
 		}
 	}
@@ -1032,7 +1041,7 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 		dev_warn(mmc_dev(host->mmc), "Failed to get debounce clock\n");
 	else
 		if (clk_enable(host->dbclk) != 0)
-			dev_dbg(mmc_dev(host->mmc), "Enabling debounce"
+			omap_dev_dbg(host, mmc_dev(host->mmc), "Enabling debounce"
 							" clk failed\n");
 		else
 			host->dbclk_enabled = 1;
@@ -1078,14 +1087,14 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 	ret = request_irq(host->irq, mmc_omap_irq, IRQF_DISABLED,
 			mmc_hostname(mmc), host);
 	if (ret) {
-		dev_dbg(mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
 		goto err_irq;
 	}
 
 	/* initialize power supplies, gpios, etc */
 	if (pdata->init != NULL) {
 		if (pdata->init(&pdev->dev) != 0) {
-			dev_dbg(mmc_dev(host->mmc), "late init error\n");
+			omap_dev_dbg(host, mmc_dev(host->mmc), "late init error\n");
 			goto err_irq_cd_init;
 		}
 	}
@@ -1099,7 +1108,7 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 					  | IRQF_DISABLED,
 				  mmc_hostname(mmc), host);
 		if (ret) {
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 				"Unable to grab MMC CD IRQ\n");
 			goto err_irq_cd;
 		}
@@ -1151,7 +1160,7 @@ err_irq:
 err1:
 	iounmap(host->base);
 err:
-	dev_dbg(mmc_dev(host->mmc), "Probe Failed\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "Probe Failed\n");
 	release_mem_region(res->start, res->end - res->start + 1);
 	if (host)
 		mmc_free_host(mmc);
@@ -1214,7 +1223,7 @@ static int omap_mmc_suspend(struct platform_device *pdev, pm_message_t state)
 				ret = host->pdata->suspend(&pdev->dev,
 								host->slot_id);
 				if (ret)
-					dev_dbg(mmc_dev(host->mmc),
+					omap_dev_dbg(host, mmc_dev(host->mmc),
 						"Unable to handle MMC board"
 						" level suspend\n");
 			}
@@ -1265,13 +1274,13 @@ static int omap_mmc_resume(struct platform_device *pdev)
 		}
 
 		if (clk_enable(host->dbclk) != 0)
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 					"Enabling debounce clk failed\n");
 
 		if (host->pdata->resume) {
 			ret = host->pdata->resume(&pdev->dev, host->slot_id);
 			if (ret)
-				dev_dbg(mmc_dev(host->mmc),
+				omap_dev_dbg(host, mmc_dev(host->mmc),
 					"Unmask interrupt failed\n");
 		}
 
@@ -1284,7 +1293,7 @@ static int omap_mmc_resume(struct platform_device *pdev)
 	return ret;
 
 clk_en_err:
-	dev_dbg(mmc_dev(host->mmc),
+	omap_dev_dbg(host, mmc_dev(host->mmc),
 		"Failed to enable MMC clocks during resume\n");
 	return ret;
 }
