@@ -233,7 +233,8 @@ static struct twl4030_hsmmc_info mmc[] = {
        .wires      = 4,
        .gpio_wp    = -EINVAL,
        .ext_clock  = 0,
-       .ocr_mask   = MMC_VDD_165_195,
+       .ocr_mask   = MMC_VDD_165_195 | MMC_VDD_30_31 |
+						MMC_VDD_32_33   | MMC_VDD_33_34,
 	},
 	{}	/* Terminator */
 };
