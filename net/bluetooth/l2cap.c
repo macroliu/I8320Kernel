@@ -422,10 +422,21 @@ static void l2cap_conn_start(struct l2cap_conn *conn)
 	read_unlock(&l->lock);
 }
 
+#ifdef CONFIG_AZWAVE_SET_ACL_PRIORITY_HIGH_FOR_GH600
+#define HCI_BRCM_SET_ACL_PRIORITY  0x0057
+#define HCI_BRCM_ACL_PRIORITY_PARAM_SIZE  3
+#define HCI_BRCM_ACL_PRIORITY_HIGH  0xFF
+#define OGF_VENDOR                  0x3F
+#define AVDT_PSM 25
+#endif
+
 static void l2cap_conn_ready(struct l2cap_conn *conn)
 {
 	struct l2cap_chan_list *l = &conn->chan_list;
 	struct sock *sk;
+#ifdef CONFIG_AZWAVE_SET_ACL_PRIORITY_HIGH_FOR_GH600
+	unsigned char acl_priority[HCI_BRCM_ACL_PRIORITY_PARAM_SIZE];
+#endif
 
 	BT_DBG("conn %p", conn);
 
@@ -433,6 +444,17 @@ static void l2cap_conn_ready(struct l2cap_conn *conn)
 
 	for (sk = l->head; sk; sk = l2cap_pi(sk)->next_c) {
 		bh_lock_sock(sk);
+#ifdef CONFIG_AZWAVE_SET_ACL_PRIORITY_HIGH_FOR_GH600
+		if (l2cap_pi(sk)->psm == AVDT_PSM) {
+			memcpy (&acl_priority[0], &conn->hcon->handle, 2);
+			acl_priority[2] =  HCI_BRCM_ACL_PRIORITY_HIGH;
+			hci_send_cmd (conn->hcon->hdev,
+					(HCI_BRCM_SET_ACL_PRIORITY | OGF_VENDOR << 10),
+					HCI_BRCM_ACL_PRIORITY_PARAM_SIZE,
+					&acl_priority);
+			printk("ACL priority set to HIGH\n");
+		}
+#endif
 
 		if (sk->sk_type != SOCK_SEQPACKET) {
 			l2cap_sock_clear_timer(sk);
