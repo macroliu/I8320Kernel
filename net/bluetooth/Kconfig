@@ -41,15 +41,6 @@ config BT_L2CAP
 	  Say Y here to compile L2CAP support into the kernel or say M to
 	  compile it as module (l2cap).
 
-config AZWAVE_SET_ACL_PRIORITY_HIGH_FOR_GH600
-	bool "set A2DP ACL channel high priority for AzureWave GH600"
-	depends on BT 
-	default y
-	help 
-	  Theis is a hack for GH600.
-	  Say Y here to make it A2DP can play well with other BT devices 
-	  working, like BT mouse.
-
 config BT_SCO
 	tristate "SCO links support"
 	depends on BT
