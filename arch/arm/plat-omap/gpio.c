@@ -597,7 +597,11 @@ static inline void set_24xx_gpio_triggering(struct gpio_bank *bank, int gpio,
 		trigger & IRQ_TYPE_EDGE_FALLING);
 
 	if (likely(!(bank->non_wakeup_gpios & gpio_bit))) {
-		if (trigger != 0)
+		/*
+		 * GPIO wakeup request can only be generated on edge
+		 * transitions
+		 */
+		if (trigger & IRQ_TYPE_EDGE_BOTH)
 			__raw_writel(1 << gpio, bank->base
 					+ OMAP24XX_GPIO_SETWKUENA);
 		else
@@ -606,7 +610,13 @@ static inline void set_24xx_gpio_triggering(struct gpio_bank *bank, int gpio,
 	}
 	/* This part needs to be executed always for OMAP34xx */
 	if (cpu_is_omap34xx() || (bank->non_wakeup_gpios & gpio_bit)) {
-		if (trigger != 0)
+		/*
+		 * Log the edge gpio and manually trigger the IRQ
+		 * after resume if the input level changes
+		 * to avoid irq lost during PER RET/OFF mode
+		 * Applies for omap2 non-wakeup gpio and all omap3 gpios
+		 */
+		if (trigger & IRQ_TYPE_EDGE_BOTH)
 			bank->enabled_non_wakeup_gpios |= gpio_bit;
 		else
 			bank->enabled_non_wakeup_gpios &= ~gpio_bit;
@@ -1412,6 +1422,29 @@ static int __init omap3_gpio_pads_init(void)
 		}
 	}
 	gpio_pads[gpio_amt].gpio = -1;
+
+	/* Configure gpio pad wakeups on late init */
+	for (i = 0; i < gpio_bank_count; i++) {
+		struct gpio_bank *bank = &gpio_bank[i];
+		if (bank->method == METHOD_GPIO_24XX) {
+			int j;
+			for (j = 0; j < 32; j++) {
+				int offset = gpio_pad_map[j + i * 32];
+				u16 v;
+
+				if (!offset)
+					continue;
+
+				v = omap_ctrl_readw(offset);
+				if (bank->suspend_wakeup & (1 << j))
+					v |= OMAP3_PADCONF_WAKEUPENABLE0;
+				else
+					v &= ~OMAP3_PADCONF_WAKEUPENABLE0;
+				omap_ctrl_writew(v, offset);
+			}
+		}
+	}
+
 	return 0;
 }
 late_initcall(omap3_gpio_pads_init);

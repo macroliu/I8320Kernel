@@ -446,7 +446,7 @@ void set_fb_fix(struct fb_info *fbi)
 		omap_vrfb_setup(&rg->vrfb, rg->paddr,
 				var->xres_virtual,
 				var->yres_virtual,
-				mode);
+				mode, 0);
 	}
 }
 
@@ -566,8 +566,6 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 			var->xres, var->yres,
 			var->xres_virtual, var->yres_virtual);
 
-	var->height             = -1;
-	var->width              = -1;
 	var->grayscale          = 0;
 
 	if (display && display->get_timings) {
@@ -851,7 +849,6 @@ static int omapfb_pan_display(struct fb_var_screeninfo *var,
 		struct fb_info *fbi)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
-	struct omapfb2_device *fbdev = ofbi->fbdev;
 	struct omap_dss_device *display = fb2display(fbi);
 	int r = 0;
 
@@ -1617,6 +1614,10 @@ int omapfb_fb_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 	if (display) {
 		u16 w, h;
 		int rotation = (var->rotate + ofbi->rotation[0]) % 4;
+
+		display->get_size(display, &w, &h);
+		var->width = w;
+		var->height = h;
 
 		display->get_resolution(display, &w, &h);
 

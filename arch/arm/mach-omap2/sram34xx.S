@@ -58,7 +58,6 @@
 
 /* SDRC_POWER bit settings */
 #define SRFRONIDLEREQ_MASK		0x40
-#define PWDENA_MASK			0x4
 
 /* CM_IDLEST1_CORE bit settings */
 #define ST_SDRC_MASK			0x2
@@ -97,6 +96,8 @@ ENTRY(omap3_sram_configure_core_dpll)
 	blne	lock_dll
 	bl	sdram_in_selfrefresh	@ put SDRAM in self refresh, idle SDRC
 	bl 	configure_core_dpll	@ change the DPLL3 M2 divider
+	mov	r12, r5
+	bl	wait_clk_stable		@ wait for SDRC to stabilize
 	bl	enable_sdrc		@ take SDRC out of idle
 	cmp	r4, #SDRC_UNLOCK_DLL	@ wait for DLL status to change
 	bleq	wait_dll_unlock
@@ -104,8 +105,6 @@ ENTRY(omap3_sram_configure_core_dpll)
 	cmp	r7, #1			@ if increasing SDRC clk rate,
 	beq	return_to_sdram		@ return to SDRAM code, otherwise,
 	bl	configure_sdrc		@ reprogram SDRC regs now
-	mov	r12, r5
-	bl	wait_clk_stable		@ wait for SDRC to stabilize
 return_to_sdram:
 	isb				@ prevent speculative exec past here
 	mov 	r0, #0 			@ return value
@@ -113,7 +112,7 @@ return_to_sdram:
 unlock_dll:
 	ldr	r11, omap3_sdrc_dlla_ctrl
 	ldr	r12, [r11]
-	and	r12, r12, #FIXEDDELAY_MASK
+	bic	r12, r12, #FIXEDDELAY_MASK
 	orr	r12, r12, #FIXEDDELAY_DEFAULT
 	orr	r12, r12, #DLLIDLE_MASK
 	str	r12, [r11]		@ (no OCP barrier needed)
@@ -129,7 +128,6 @@ sdram_in_selfrefresh:
 	ldr	r12, [r11]		@ read the contents of SDRC_POWER
 	mov	r9, r12			@ keep a copy of SDRC_POWER bits
 	orr 	r12, r12, #SRFRONIDLEREQ_MASK	@ enable self refresh on idle
-	bic 	r12, r12, #PWDENA_MASK	@ clear PWDENA
 	str 	r12, [r11]		@ write back to SDRC_POWER register
 	ldr	r12, [r11]		@ posted-write barrier for SDRC
 idle_sdrc:
