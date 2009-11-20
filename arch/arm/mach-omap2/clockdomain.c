@@ -71,14 +71,14 @@ static void _autodep_lookup(struct clkdm_pwrdm_autodep *autodep)
 	if (!omap_chip_is(autodep->omap_chip))
 		return;
 
-	pwrdm = pwrdm_lookup(autodep->pwrdm_name);
+	pwrdm = pwrdm_lookup(autodep->pwrdm.name);
 	if (!pwrdm) {
 		pr_debug("clockdomain: _autodep_lookup: powerdomain %s "
-			 "does not exist\n", autodep->pwrdm_name);
+			 "does not exist\n", autodep->pwrdm.name);
 		WARN_ON(1);
 		return;
 	}
-	autodep->pwrdm = pwrdm;
+	autodep->pwrdm.ptr = pwrdm;
 
 	return;
 }
@@ -95,16 +95,16 @@ static void _clkdm_add_autodeps(struct clockdomain *clkdm)
 {
 	struct clkdm_pwrdm_autodep *autodep;
 
-	for (autodep = autodeps; autodep->pwrdm_name; autodep++) {
-		if (!autodep->pwrdm)
+	for (autodep = autodeps; autodep->pwrdm.ptr; autodep++) {
+		if (!omap_chip_is(autodep->omap_chip))
 			continue;
 
 		pr_debug("clockdomain: adding %s sleepdep/wkdep for "
-			 "pwrdm %s\n", autodep->pwrdm_name,
-			 clkdm->pwrdm->name);
+			 "pwrdm %s\n", autodep->pwrdm.ptr->name,
+			 clkdm->pwrdm.ptr->name);
 
-		pwrdm_add_sleepdep(clkdm->pwrdm, autodep->pwrdm);
-		pwrdm_add_wkdep(clkdm->pwrdm, autodep->pwrdm);
+		pwrdm_add_sleepdep(clkdm->pwrdm.ptr, autodep->pwrdm.ptr);
+		pwrdm_add_wkdep(clkdm->pwrdm.ptr, autodep->pwrdm.ptr);
 	}
 }
 
@@ -120,16 +120,16 @@ static void _clkdm_del_autodeps(struct clockdomain *clkdm)
 {
 	struct clkdm_pwrdm_autodep *autodep;
 
-	for (autodep = autodeps; autodep->pwrdm_name; autodep++) {
-		if (!autodep->pwrdm)
+	for (autodep = autodeps; autodep->pwrdm.ptr; autodep++) {
+		if (!omap_chip_is(autodep->omap_chip))
 			continue;
 
 		pr_debug("clockdomain: removing %s sleepdep/wkdep for "
-			 "pwrdm %s\n", autodep->pwrdm_name,
-			 clkdm->pwrdm->name);
+			 "pwrdm %s\n", autodep->pwrdm.ptr->name,
+			 clkdm->pwrdm.ptr->name);
 
-		pwrdm_del_sleepdep(clkdm->pwrdm, autodep->pwrdm);
-		pwrdm_del_wkdep(clkdm->pwrdm, autodep->pwrdm);
+		pwrdm_del_sleepdep(clkdm->pwrdm.ptr, autodep->pwrdm.ptr);
+		pwrdm_del_wkdep(clkdm->pwrdm.ptr, autodep->pwrdm.ptr);
 	}
 }
 
@@ -179,7 +179,7 @@ void clkdm_init(struct clockdomain **clkdms,
 
 	autodeps = init_autodeps;
 	if (autodeps)
-		for (autodep = autodeps; autodep->pwrdm_name; autodep++)
+		for (autodep = autodeps; autodep->pwrdm.ptr; autodep++)
 			_autodep_lookup(autodep);
 }
 
@@ -202,13 +202,13 @@ int clkdm_register(struct clockdomain *clkdm)
 	if (!omap_chip_is(clkdm->omap_chip))
 		return -EINVAL;
 
-	pwrdm = pwrdm_lookup(clkdm->pwrdm_name);
+	pwrdm = pwrdm_lookup(clkdm->pwrdm.name);
 	if (!pwrdm) {
 		pr_debug("clockdomain: clkdm_register %s: powerdomain %s "
-			 "does not exist\n", clkdm->name, clkdm->pwrdm_name);
+			 "does not exist\n", clkdm->name, clkdm->pwrdm.name);
 		return -EINVAL;
 	}
-	clkdm->pwrdm = pwrdm;
+	clkdm->pwrdm.ptr = pwrdm;
 
 	mutex_lock(&clkdm_mutex);
 	/* Verify that the clockdomain is not already registered */
@@ -242,7 +242,7 @@ int clkdm_unregister(struct clockdomain *clkdm)
 	if (!clkdm)
 		return -EINVAL;
 
-	pwrdm_del_clkdm(clkdm->pwrdm, clkdm);
+	pwrdm_del_clkdm(clkdm->pwrdm.ptr, clkdm);
 
 	mutex_lock(&clkdm_mutex);
 	list_del(&clkdm->node);
@@ -295,7 +295,8 @@ struct clockdomain *clkdm_lookup(const char *name)
  * anything else to indicate failure; or -EINVAL if the function pointer
  * is null.
  */
-int clkdm_for_each(int (*fn)(struct clockdomain *clkdm))
+int clkdm_for_each(int (*fn)(struct clockdomain *clkdm, void *user),
+			void *user)
 {
 	struct clockdomain *clkdm;
 	int ret = 0;
@@ -305,7 +306,7 @@ int clkdm_for_each(int (*fn)(struct clockdomain *clkdm))
 
 	mutex_lock(&clkdm_mutex);
 	list_for_each_entry(clkdm, &clkdm_list, node) {
-		ret = (*fn)(clkdm);
+		ret = (*fn)(clkdm, user);
 		if (ret)
 			break;
 	}
@@ -327,7 +328,7 @@ struct powerdomain *clkdm_get_pwrdm(struct clockdomain *clkdm)
 	if (!clkdm)
 		return NULL;
 
-	return clkdm->pwrdm;
+	return clkdm->pwrdm.ptr;
 }
 
 
@@ -348,7 +349,7 @@ static int omap2_clkdm_clktrctrl_read(struct clockdomain *clkdm)
 	if (!clkdm)
 		return -EINVAL;
 
-	v = cm_read_mod_reg(clkdm->pwrdm->prcm_offs, CM_CLKSTCTRL);
+	v = cm_read_mod_reg(clkdm->pwrdm.ptr->prcm_offs, CM_CLKSTCTRL);
 	v &= clkdm->clktrctrl_mask;
 	v >>= __ffs(clkdm->clktrctrl_mask);
 
@@ -380,7 +381,7 @@ int omap2_clkdm_sleep(struct clockdomain *clkdm)
 	if (cpu_is_omap24xx()) {
 
 		cm_set_mod_reg_bits(OMAP24XX_FORCESTATE,
-				    clkdm->pwrdm->prcm_offs, PM_PWSTCTRL);
+				    clkdm->pwrdm.ptr->prcm_offs, PM_PWSTCTRL);
 
 	} else if (cpu_is_omap34xx()) {
 
@@ -388,7 +389,7 @@ int omap2_clkdm_sleep(struct clockdomain *clkdm)
 			 __ffs(clkdm->clktrctrl_mask));
 
 		cm_rmw_mod_reg_bits(clkdm->clktrctrl_mask, v,
-				    clkdm->pwrdm->prcm_offs, CM_CLKSTCTRL);
+				    clkdm->pwrdm.ptr->prcm_offs, CM_CLKSTCTRL);
 
 	} else {
 		BUG();
@@ -422,7 +423,7 @@ int omap2_clkdm_wakeup(struct clockdomain *clkdm)
 	if (cpu_is_omap24xx()) {
 
 		cm_clear_mod_reg_bits(OMAP24XX_FORCESTATE,
-				      clkdm->pwrdm->prcm_offs, PM_PWSTCTRL);
+				      clkdm->pwrdm.ptr->prcm_offs, PM_PWSTCTRL);
 
 	} else if (cpu_is_omap34xx()) {
 
@@ -430,7 +431,7 @@ int omap2_clkdm_wakeup(struct clockdomain *clkdm)
 			 __ffs(clkdm->clktrctrl_mask));
 
 		cm_rmw_mod_reg_bits(clkdm->clktrctrl_mask, v,
-				    clkdm->pwrdm->prcm_offs, CM_CLKSTCTRL);
+				    clkdm->pwrdm.ptr->prcm_offs, CM_CLKSTCTRL);
 
 	} else {
 		BUG();
@@ -478,8 +479,10 @@ void omap2_clkdm_allow_idle(struct clockdomain *clkdm)
 
 	cm_rmw_mod_reg_bits(clkdm->clktrctrl_mask,
 			    v << __ffs(clkdm->clktrctrl_mask),
-			    clkdm->pwrdm->prcm_offs,
+			    clkdm->pwrdm.ptr->prcm_offs,
 			    CM_CLKSTCTRL);
+
+	pwrdm_clkdm_state_switch(clkdm);
 }
 
 /**
@@ -516,7 +519,7 @@ void omap2_clkdm_deny_idle(struct clockdomain *clkdm)
 
 	cm_rmw_mod_reg_bits(clkdm->clktrctrl_mask,
 			    v << __ffs(clkdm->clktrctrl_mask),
-			    clkdm->pwrdm->prcm_offs, CM_CLKSTCTRL);
+			    clkdm->pwrdm.ptr->prcm_offs, CM_CLKSTCTRL);
 
 	if (atomic_read(&clkdm->usecount) > 0)
 		_clkdm_del_autodeps(clkdm);
@@ -566,6 +569,9 @@ int omap2_clkdm_clk_enable(struct clockdomain *clkdm, struct clk *clk)
 		_clkdm_add_autodeps(clkdm);
 	else
 		omap2_clkdm_wakeup(clkdm);
+
+	pwrdm_wait_transition(clkdm->pwrdm.ptr);
+	pwrdm_clkdm_state_switch(clkdm);
 
 	return 0;
 }
@@ -617,6 +623,8 @@ int omap2_clkdm_clk_disable(struct clockdomain *clkdm, struct clk *clk)
 		_clkdm_del_autodeps(clkdm);
 	else
 		omap2_clkdm_sleep(clkdm);
+
+	pwrdm_clkdm_state_switch(clkdm);
 
 	return 0;
 }

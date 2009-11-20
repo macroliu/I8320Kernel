@@ -157,7 +157,11 @@ static int cistpl_funce(struct mmc_card *card, struct sdio_func *func,
 	if (ret) {
 		printk(KERN_ERR "%s: bad CISTPL_FUNCE size %u "
 		       "type %u\n", mmc_hostname(card->host), size, buf[0]);
+#ifdef CONFIG_AZWAVE_HACK_FOR_GH600_ON_BEAGLEBOARD
+		return 0;
+#else
 		return ret;
+#endif
 	}
 
 	return 0;

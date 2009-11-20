@@ -28,13 +28,13 @@
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
 #include <linux/io.h>
+#include <linux/omapfb.h>
 
 #include <mach/hardware.h>
 #include <asm/mach/map.h>
 
 #include <mach/board.h>
 #include <mach/sram.h>
-#include <mach/omapfb.h>
 
 #if defined(CONFIG_FB_OMAP) || defined(CONFIG_FB_OMAP_MODULE)
 
@@ -206,9 +206,10 @@ void __init omapfb_reserve_sdram(void)
 			config_invalid = 1;
 			return;
 		}
-		if (rg.paddr)
+		if (rg.paddr) {
 			reserve_bootmem(rg.paddr, rg.size, BOOTMEM_DEFAULT);
-		reserved += rg.size;
+			reserved += rg.size;
+		}
 		omapfb_config.mem_desc.region[i] = rg;
 		configured_regions++;
 	}
@@ -321,6 +322,34 @@ static inline int omap_init_fb(void)
 	}
 	omapfb_config.lcd = *conf;
 
+	return platform_device_register(&omap_fb_device);
+}
+
+arch_initcall(omap_init_fb);
+
+#elif defined(CONFIG_FB_OMAP2) || defined(CONFIG_FB_OMAP2_MODULE)
+
+static u64 omap_fb_dma_mask = ~(u32)0;
+static struct omapfb_platform_data omapfb_config;
+
+static struct platform_device omap_fb_device = {
+	.name		= "omapfb",
+	.id		= -1,
+	.dev = {
+		.dma_mask		= &omap_fb_dma_mask,
+		.coherent_dma_mask	= ~(u32)0,
+		.platform_data		= &omapfb_config,
+	},
+	.num_resources = 0,
+};
+
+void omapfb_set_platform_data(struct omapfb_platform_data *data)
+{
+	omapfb_config = *data;
+}
+
+static inline int omap_init_fb(void)
+{
 	return platform_device_register(&omap_fb_device);
 }
 

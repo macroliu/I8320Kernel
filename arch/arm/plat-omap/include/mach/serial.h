@@ -25,6 +25,7 @@
 #define OMAP_UART1_BASE		0x4806a000
 #define OMAP_UART2_BASE		0x4806c000
 #define OMAP_UART3_BASE		0x49020000
+#define OMAP_UART_EXT_BASE	0x10000000
 #endif
 
 #define OMAP_MAX_NR_PORTS	3
@@ -39,5 +40,15 @@
 				__ret = 1;				\
 			__ret;						\
 			})
+
+#ifndef __ASSEMBLER__
+extern void omap_serial_init(void);
+extern int omap_uart_can_sleep(void);
+extern void omap_uart_check_wakeup(void);
+extern void omap_uart_prepare_suspend(void);
+extern void omap_uart_prepare_idle(int num);
+extern void omap_uart_resume_idle(int num);
+extern void omap_uart_enable_irqs(int enable);
+#endif
 
 #endif

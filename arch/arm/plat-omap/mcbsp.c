@@ -176,6 +176,7 @@ void omap_mcbsp_config(unsigned int id, const struct omap_mcbsp_reg_cfg *config)
 	if (cpu_is_omap2430() || cpu_is_omap34xx()) {
 		OMAP_MCBSP_WRITE(io_base, XCCR, config->xccr);
 		OMAP_MCBSP_WRITE(io_base, RCCR, config->rccr);
+		OMAP_MCBSP_WRITE(io_base, WAKEUPEN, config->wken);
 	}
 }
 EXPORT_SYMBOL(omap_mcbsp_config);
@@ -226,9 +227,6 @@ int omap_mcbsp_request(unsigned int id)
 	if (mcbsp->pdata && mcbsp->pdata->ops && mcbsp->pdata->ops->request)
 		mcbsp->pdata->ops->request(id);
 
-	for (i = 0; i < mcbsp->num_clks; i++)
-		clk_enable(mcbsp->clks[i]);
-
 	spin_lock(&mcbsp->lock);
 	if (!mcbsp->free) {
 		dev_err(mcbsp->dev, "McBSP%d is currently in use\n",
@@ -239,6 +237,24 @@ int omap_mcbsp_request(unsigned int id)
 
 	mcbsp->free = 0;
 	spin_unlock(&mcbsp->lock);
+
+	for (i = 0; i < mcbsp->num_clks; i++)
+		clk_enable(mcbsp->clks[i]);
+
+	/*
+	 * Enable wakup behavior, smart idle and all wakeups
+	 * REVISIT: some wakeups may be unnecessary
+	 */
+	if (cpu_is_omap34xx()) {
+		u16 w;
+
+		w = OMAP_MCBSP_READ(mcbsp->io_base, SYSCON);
+		w &= ~(ENAWAKEUP | SIDLEMODE(0x03) | CLOCKACTIVITY(0x03));
+		w |= (ENAWAKEUP | SIDLEMODE(0x02) | CLOCKACTIVITY(0x02));
+		OMAP_MCBSP_WRITE(mcbsp->io_base, SYSCON, w);
+
+		OMAP_MCBSP_WRITE(mcbsp->io_base, WAKEUPEN, WAKEUPEN_ALL);
+	}
 
 	/*
 	 * Make sure that transmitter, receiver and sample-rate generator are
@@ -286,11 +302,23 @@ void omap_mcbsp_free(unsigned int id)
 	}
 	mcbsp = id_to_mcbsp_ptr(id);
 
+	/*
+	 * Disable wakup behavior, smart idle and all wakeups
+	 */
+	if (cpu_is_omap34xx()) {
+		u16 w;
+
+		w = OMAP_MCBSP_READ(mcbsp->io_base, SYSCON);
+		w &= ~(ENAWAKEUP | SIDLEMODE(0x03) | CLOCKACTIVITY(0x03));
+		OMAP_MCBSP_WRITE(mcbsp->io_base, SYSCON, w);
+
+		w = OMAP_MCBSP_READ(mcbsp->io_base, WAKEUPEN);
+		w &= ~WAKEUPEN_ALL;
+		OMAP_MCBSP_WRITE(mcbsp->io_base, WAKEUPEN, w);
+	}
+
 	if (mcbsp->pdata && mcbsp->pdata->ops && mcbsp->pdata->ops->free)
 		mcbsp->pdata->ops->free(id);
-
-	for (i = mcbsp->num_clks - 1; i >= 0; i--)
-		clk_disable(mcbsp->clks[i]);
 
 	spin_lock(&mcbsp->lock);
 	if (mcbsp->free) {
@@ -299,7 +327,12 @@ void omap_mcbsp_free(unsigned int id)
 		spin_unlock(&mcbsp->lock);
 		return;
 	}
+	spin_unlock(&mcbsp->lock);
 
+	for (i = mcbsp->num_clks - 1; i >= 0; i--)
+		clk_disable(mcbsp->clks[i]);
+
+	spin_lock(&mcbsp->lock);
 	mcbsp->free = 1;
 	spin_unlock(&mcbsp->lock);
 

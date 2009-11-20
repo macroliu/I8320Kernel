@@ -226,12 +226,25 @@ int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 
 int __init musb_platform_init(struct musb *musb)
 {
+	struct otg_transceiver *x = otg_get_transceiver();
 	u32 l;
 
 #if defined(CONFIG_ARCH_OMAP2430)
 	omap_cfg_reg(AE5_2430_USB0HS_STP);
 #endif
 
+	/* Reset controller */
+	if (musb->set_clock)
+		musb->set_clock(musb->clock, 1);
+	else
+		clk_enable(musb->clock);
+	l = omap_readl(OTG_SYSCONFIG);
+	l |= SOFTRST;
+	omap_writel(l, OTG_SYSCONFIG);
+	while (!(RESETDONE & omap_readl(OTG_SYSSTATUS)))
+		cpu_relax();
+
+	musb->xceiv = *x;
 	musb_platform_resume(musb);
 
 	l = omap_readl(OTG_SYSCONFIG);
@@ -241,7 +254,12 @@ int __init musb_platform_init(struct musb *musb)
 	l &= ~AUTOIDLE;		/* disable auto idle */
 	l &= ~NOIDLE;		/* remove possible noidle */
 	l |= SMARTIDLE;		/* enable smart idle */
-	l |= AUTOIDLE;		/* enable auto idle */
+	/*
+	 * MUSB AUTOIDLE don't work in 3430.
+	 * Workaround by Richard Woodruff/TI
+	 */
+	if (!cpu_is_omap3430())
+		l |= AUTOIDLE;		/* enable auto idle */
 	omap_writel(l, OTG_SYSCONFIG);
 
 	l = omap_readl(OTG_INTERFSEL);
@@ -258,7 +276,7 @@ int __init musb_platform_init(struct musb *musb)
 
 	if (is_host_enabled(musb))
 		musb->board_set_vbus = omap_set_vbus;
-	if (is_peripheral_enabled(musb))
+	if (!musb->xceiv.set_power && is_peripheral_enabled(musb))
 		musb->xceiv.set_power = omap_set_power;
 	musb->a_wait_bcon = MUSB_TIMEOUT_A_WAIT_BCON;
 

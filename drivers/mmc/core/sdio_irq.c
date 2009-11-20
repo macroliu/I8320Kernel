@@ -84,8 +84,8 @@ static int sdio_irq_thread(void *_host)
 	period = (host->caps & MMC_CAP_SDIO_IRQ) ?
 		MAX_SCHEDULE_TIMEOUT : idle_period;
 
-	pr_debug("%s: IRQ thread started (poll period = %lu jiffies)\n",
-		 mmc_hostname(host), period);
+	mmc_pr_debug(host, "%s: IRQ thread started (poll period = %lu jiffies)\n",
+			mmc_hostname(host), period);
 
 	do {
 		/*
@@ -144,8 +144,8 @@ static int sdio_irq_thread(void *_host)
 	if (host->caps & MMC_CAP_SDIO_IRQ)
 		host->ops->enable_sdio_irq(host, 0);
 
-	pr_debug("%s: IRQ thread exiting with code %d\n",
-		 mmc_hostname(host), ret);
+	mmc_pr_debug(host, "%s: IRQ thread exiting with code %d\n",
+			mmc_hostname(host), ret);
 
 	return ret;
 }
