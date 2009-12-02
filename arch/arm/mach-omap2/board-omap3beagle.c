@@ -419,10 +419,27 @@ static struct i2c_board_info __initdata beagle_i2c_boardinfo[] = {
 	},
 };
 
+#if defined CONFIG_INPUT_ST_MOTION_SENSOR
+#define BEAGLE_LIS302DL_IRQ_GPIO 	136
+static struct i2c_board_info __initdata beagle_i2c2_boardinfo[] = {
+	{
+		/* SDO is connected to ground */
+		I2C_BOARD_INFO("lis302dl", 0x1d),
+		.irq = OMAP_GPIO_IRQ(BEAGLE_LIS302DL_IRQ_GPIO),
+	},
+};
+#endif
+
 static int __init omap3_beagle_i2c_init(void)
 {
 	omap_register_i2c_bus(1, 2600, beagle_i2c_boardinfo,
 			ARRAY_SIZE(beagle_i2c_boardinfo));
+
+#if defined CONFIG_INPUT_ST_MOTION_SENSOR
+	omap_cfg_reg(AE4_34XX_GPIO136);
+	omap_register_i2c_bus(2, 400, beagle_i2c2_boardinfo,
+			ARRAY_SIZE(beagle_i2c2_boardinfo));
+#endif
 	/* Bus 3 is attached to the DVI port where devices like the pico DLP
 	 * projector don't work reliably with 400kHz */
 	omap_register_i2c_bus(3, 100, NULL, 0);
