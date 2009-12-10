@@ -42,6 +42,7 @@
 #include <linux/lis302dl.h>
 
 #define LIS302DL_DRIVER_NAME 		"lis302dl"
+#define mg_weight 			18
 
 struct lis302dl{
 	struct device *dev;
@@ -128,21 +129,20 @@ static void lis_work(struct work_struct *work)
 	struct lis302dl *lis =
 				container_of(work, struct lis302dl, work);
 
-	u_int8_t out[AXIS_OUTPUT_SIZE], status;
-
-	status = reg_read(lis, LIS302DL_REG_STATUS);
+	s8 out[AXIS_OUTPUT_SIZE];
+	u_int8_t status = reg_read(lis, LIS302DL_REG_STATUS);
 
 	/* deal with input and report to user space */
-	if (0xf & status)
+	if (LIS302DL_STATUS_XYZDA & status)
 	{
 		out[X_OUTPUT] = reg_read(lis, LIS302DL_REG_OUT_X);
-		input_report_abs(lis->input_dev, ABS_X, out[X_OUTPUT]);
+		input_report_abs(lis->input_dev, ABS_X, out[X_OUTPUT] * mg_weight);
 
 		out[Y_OUTPUT] = reg_read(lis, LIS302DL_REG_OUT_Y);
-		input_report_abs(lis->input_dev, ABS_Y, out[Y_OUTPUT]);
+		input_report_abs(lis->input_dev, ABS_Y, out[Y_OUTPUT] * mg_weight);
 
 		out[Z_OUTPUT] = reg_read(lis, LIS302DL_REG_OUT_Z);
-		input_report_abs(lis->input_dev, ABS_Z, out[Z_OUTPUT]);
+		input_report_abs(lis->input_dev, ABS_Z, out[Z_OUTPUT] * mg_weight);
 
 		dev_dbg(lis->dev, "status %2x:X %2x:Y %2x:Z %2x\n",
 						status, out[X_OUTPUT], out[Y_OUTPUT], out[Z_OUTPUT]);
