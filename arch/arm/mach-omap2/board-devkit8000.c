@@ -147,7 +147,9 @@ static void devkit8000_panel_disable_lcd(struct omap_dss_device *dssdev)
 static struct omap_dss_device devkit8000_lcd_device = {
 	.type                   = OMAP_DISPLAY_TYPE_DPI,
 	.name                   = "lcd",
-	.driver_name            = "devkit8000_lcd_panel",
+	.driver_name            = "generic_panel",
+	.panel.config           = OMAP_DSS_LCD_TFT|OMAP_DSS_LCD_IVS|OMAP_DSS_LCD_IHS,
+	.panel.acb              = 0x28,
 	.phy.dpi.data_lines     = 24,
 	.platform_enable        = devkit8000_panel_enable_lcd,
 	.platform_disable       = devkit8000_panel_disable_lcd,

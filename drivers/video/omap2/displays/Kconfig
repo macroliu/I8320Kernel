@@ -30,10 +30,4 @@ config PANEL_SHOLES
         help
 	  LCD Panel used in sholes
 
-config PANEL_DEVKIT8000_43LCD
-	tristate "Devkit800 4.3\" LCD Panel"
-	depends on OMAP2_DSS
-	help
-	 LCD Panel used in TimLL's Devkit8000
-
 endmenu
