@@ -265,6 +265,8 @@ static int beagle_twl_gpio_setup(struct device *dev,
 	beagle_vmmc1_supply.dev = mmc[0].dev;
 	beagle_vsim_supply.dev = mmc[0].dev;
 
+        /* TWL4030_GPIO_MAX + 1 == ledB, PMU_STAT (out, active low LED) */
+        gpio_leds[2].gpio = gpio + TWL4030_GPIO_MAX + 1;
 	return 0;
 }
 
