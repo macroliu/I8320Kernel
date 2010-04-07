@@ -241,19 +241,6 @@ static struct regulator_consumer_supply devkit8000_vdds_dsi_supply = {
 	.dev	= &devkit8000_dss_device.dev,
 };
 
-static void __init devkit8000_display_init(void)
-{
-	int r;
-
-	r = gpio_request(devkit8000_dvi_device.reset_gpio, "DVI reset");
-	if (r < 0) {
-		printk(KERN_ERR "Unable to get DVI reset GPIO\n");
-		return;
-	}
-
-	gpio_direction_output(devkit8000_dvi_device.reset_gpio, 0);
-}
-
 static struct omap_uart_config devkit8000_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
@@ -294,6 +281,12 @@ static int devkit8000_twl_gpio_setup(struct device *dev,
 	/* link regulators to MMC adapters */
 	devkit8000_vmmc1_supply.dev = mmc[0].dev;
 	devkit8000_vsim_supply.dev = mmc[0].dev;
+
+	/* gpio + 7 is "DVI_PD" (out, active low) */
+	devkit8000_dvi_device.reset_gpio = gpio + 7;
+	gpio_request(devkit8000_dvi_device.reset_gpio, "DVI PowerDown");
+	/* Disable until needed */
+	gpio_direction_output(devkit8000_dvi_device.reset_gpio, 0);
 
 	return 0;
 }
@@ -865,7 +858,6 @@ static void __init devkit8000_init(void)
 	usb_musb_init();
 	usb_ehci_init();
 	devkit8000_flash_init();
-	devkit8000_display_init();
 }
 
 static void __init devkit8000_map_io(void)
