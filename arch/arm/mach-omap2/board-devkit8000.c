@@ -150,7 +150,6 @@ static struct omap_dss_device devkit8000_lcd_device = {
 	.name                   = "lcd",
 	.driver_name            = "generic_panel",
 	.panel.config           = OMAP_DSS_LCD_TFT|OMAP_DSS_LCD_IVS|OMAP_DSS_LCD_IHS,
-	.panel.acb              = 0x28,
 	.phy.dpi.data_lines     = 24,
 	.platform_enable        = devkit8000_panel_enable_lcd,
 	.platform_disable       = devkit8000_panel_disable_lcd,
