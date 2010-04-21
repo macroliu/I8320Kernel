@@ -707,6 +707,12 @@ static struct gpio_keys_button gpio_buttons[] = {
 		.desc			= "user",
 		.wakeup			= 1,
 	},
+	{
+		.code			= BTN_MISC,
+		.gpio			= 7,
+		.desc			= "boot_key",
+		.wakeup			= 1,
+	},
 };
 
 static struct gpio_keys_platform_data gpio_key_info = {
