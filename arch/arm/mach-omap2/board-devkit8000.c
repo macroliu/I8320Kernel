@@ -709,12 +709,14 @@ static struct gpio_keys_button gpio_buttons[] = {
 		.gpio			= USER_KEY_GPIO,
 		.desc			= "user",
 		.wakeup			= 1,
+		.active_low             = true,
 	},
 	{
 		.code			= KEY_HOME,
 		.gpio			= BOOT_KEY_GPIO,
 		.desc			= "boot_key",
 		.wakeup			= 1,
+		.active_low             = false,
 	},
 };
 
