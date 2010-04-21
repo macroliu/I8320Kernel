@@ -77,6 +77,9 @@
 #define OMAP_DM9000_GPIO_IRQ	25
 #define OMAP3_DEVKIT_TS_GPIO	27
 
+#define USER_KEY_GPIO 26
+#define BOOT_KEY_GPIO 7
+
 static struct mtd_partition devkit8000_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
@@ -703,13 +706,13 @@ static struct platform_device leds_gpio = {
 static struct gpio_keys_button gpio_buttons[] = {
 	{
 		.code			= KEY_EXIT,
-		.gpio			= 26,
+		.gpio			= USER_KEY_GPIO,
 		.desc			= "user",
 		.wakeup			= 1,
 	},
 	{
 		.code			= KEY_HOME,
-		.gpio			= 7,
+		.gpio			= BOOT_KEY_GPIO,
 		.desc			= "boot_key",
 		.wakeup			= 1,
 	},
