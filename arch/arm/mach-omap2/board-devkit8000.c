@@ -702,13 +702,13 @@ static struct platform_device leds_gpio = {
 
 static struct gpio_keys_button gpio_buttons[] = {
 	{
-		.code			= BTN_BACK,
+		.code			= KEY_EXIT,
 		.gpio			= 26,
 		.desc			= "user",
 		.wakeup			= 1,
 	},
 	{
-		.code			= BTN_MISC,
+		.code			= KEY_HOME,
 		.gpio			= 7,
 		.desc			= "boot_key",
 		.wakeup			= 1,
