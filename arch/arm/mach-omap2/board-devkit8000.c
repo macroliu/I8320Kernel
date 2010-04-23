@@ -290,6 +290,9 @@ static int devkit8000_twl_gpio_setup(struct device *dev,
 	/* Disable until needed */
 	gpio_direction_output(devkit8000_dvi_device.reset_gpio, 0);
 
+        /* TWL4030_GPIO_MAX + 1 == ledB, PMU_STAT (out, active low LED) */
+        gpio_leds[2].gpio = gpio + TWL4030_GPIO_MAX + 1;
+
 	return 0;
 }
 
