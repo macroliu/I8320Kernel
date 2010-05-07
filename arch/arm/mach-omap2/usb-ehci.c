@@ -27,7 +27,7 @@
 #include <mach/irqs.h>
 #include <plat/usb.h>
 
-#if 0 && defined(CONFIG_USB_EHCI_HCD) || defined(CONFIG_USB_EHCI_HCD_MODULE)
+#if defined(CONFIG_USB_EHCI_HCD) || defined(CONFIG_USB_EHCI_HCD_MODULE)
 
 static struct resource ehci_resources[] = {
 	{
