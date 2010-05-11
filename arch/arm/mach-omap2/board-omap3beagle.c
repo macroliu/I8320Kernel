@@ -30,6 +30,7 @@
 
 #include <linux/regulator/machine.h>
 #include <linux/i2c/twl4030.h>
+#include <linux/usb/android_composite.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -345,6 +346,51 @@ static struct twl4030_usb_data beagle_usb_data = {
 	.usb_mode	= T2_USB_MODE_ULPI,
 };
 
+#define GOOGLE_VENDOR_ID               0x18d1
+#define GOOGLE_PRODUCT_ID              0x9018
+#define GOOGLE_ADB_PRODUCT_ID          0x9015
+
+static char *usb_functions_adb[] = {
+	"adb",
+};
+
+static char *usb_functions_all[] = {
+	"adb",
+};
+
+static struct android_usb_product usb_products[] = {
+	{
+		.product_id     = GOOGLE_PRODUCT_ID,
+		.num_functions  = ARRAY_SIZE(usb_functions_adb),
+		.functions      = usb_functions_adb,
+	},
+};
+
+static struct android_usb_platform_data android_usb_pdata = {
+	.vendor_id = GOOGLE_VENDOR_ID,
+	.product_id = GOOGLE_PRODUCT_ID,
+	.functions = usb_functions_all,
+	.products = usb_products,
+	.version = 0x0100,
+	.product_name = "0xdroid gadget",
+	.manufacturer_name = "0xlab",
+	.serial_number = "20090427",
+	.num_functions = ARRAY_SIZE(usb_functions_all),
+};
+
+static struct platform_device androidusb_device = {
+	.name = "android_usb",
+	.id = -1,
+	.dev = {
+		.platform_data = &android_usb_pdata,
+	},
+};
+
+static void beagle_gadget_init(void)
+{
+	platform_device_register(&androidusb_device);
+}
+
 static struct twl4030_codec_audio_data beagle_audio_data = {
 	.audio_mclk = 26000000,
 };
@@ -535,6 +581,8 @@ static void __init omap3_beagle_init(void)
 	omap_cfg_reg(H17_34XX_SDRC_CKE1);
 
 	beagle_display_init();
+
+	beagle_gadget_init();
 }
 
 static void __init omap3_beagle_map_io(void)
