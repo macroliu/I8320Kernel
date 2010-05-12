@@ -49,6 +49,8 @@
 #include <plat/omap-pm.h>
 #include <plat/display.h>
 
+#include <linux/mmc/host.h>
+
 #include "mmc-twl4030.h"
 #include "pm.h"
 #include "omap3-opp.h"
@@ -219,6 +221,13 @@ static struct twl4030_hsmmc_info mmc[] = {
 		.mmc		= 1,
 		.wires		= 8,
 		.gpio_wp	= 29,
+	},
+	{
+       .mmc        = 2,
+       .wires      = 4,
+       .gpio_wp    = -EINVAL,
+       .ext_clock  = 0,
+       .ocr_mask   = MMC_VDD_165_195,
 	},
 	{}	/* Terminator */
 };
