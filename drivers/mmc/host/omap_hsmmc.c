@@ -116,6 +116,15 @@
 #define OMAP_MMC_MASTER_CLOCK	96000000
 #define DRIVER_NAME		"mmci-omap-hs"
 
+#ifdef CONFIG_MMC_DEBUG_INDIVIDUAL
+#define omap_dev_dbg(host, fmt, ...)	do {				\
+		if (CONFIG_MMC_DEBUG_CHANNEL == (host->mmc->index))	\
+			dev_dbg(fmt, ##__VA_ARGS__);			\
+		} while (0)
+#else
+#define omap_dev_dbg(host, fmt, ...)	dev_dbg(fmt, ##__VA_ARGS__)
+#endif
+
 /* Timeouts for entering power saving states on inactivity, msec */
 #define OMAP_MMC_DISABLED_TIMEOUT	100
 #define OMAP_MMC_SLEEP_TIMEOUT		1000
@@ -183,7 +192,7 @@ static void omap_hsmmc_stop_clock(struct omap_hsmmc_host *host)
 	OMAP_HSMMC_WRITE(host->base, SYSCTL,
 		OMAP_HSMMC_READ(host->base, SYSCTL) & ~CEN);
 	if ((OMAP_HSMMC_READ(host->base, SYSCTL) & CEN) != 0x0)
-		dev_dbg(mmc_dev(host->mmc), "MMC Clock is not stoped\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "MMC Clock is not stoped\n");
 }
 
 #ifdef CONFIG_PM
@@ -207,7 +216,7 @@ static int omap_hsmmc_context_restore(struct omap_hsmmc_host *host)
 			return 1;
 	}
 
-	dev_dbg(mmc_dev(host->mmc), "context was %slost\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "context was %slost\n",
 		context_loss == host->context_loss ? "not " : "");
 	if (host->context_loss == context_loss)
 		return 1;
@@ -313,7 +322,7 @@ static int omap_hsmmc_context_restore(struct omap_hsmmc_host *host)
 out:
 	host->context_loss = context_loss;
 
-	dev_dbg(mmc_dev(host->mmc), "context is restored\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "context is restored\n");
 	return 0;
 }
 
@@ -420,7 +429,7 @@ omap_hsmmc_start_command(struct omap_hsmmc_host *host, struct mmc_command *cmd,
 {
 	int cmdreg = 0, resptype = 0, cmdtype = 0;
 
-	dev_dbg(mmc_dev(host->mmc), "%s: CMD%d, argument 0x%08x\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s: CMD%d, argument 0x%08x\n",
 		mmc_hostname(host->mmc), cmd->opcode, cmd->arg);
 	host->cmd = cmd;
 
@@ -598,7 +607,7 @@ static void omap_hsmmc_report_irq(struct omap_hsmmc_host *host, u32 status)
 			buf += len;
 		}
 
-	dev_dbg(mmc_dev(host->mmc), "%s\n", res);
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s\n", res);
 }
 #endif  /* CONFIG_MMC_DEBUG */
 
@@ -651,7 +660,7 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 
 	data = host->data;
 	status = OMAP_HSMMC_READ(host->base, STAT);
-	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
+	omap_dev_dbg(host, mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
 	if (status & ERR) {
 #ifdef CONFIG_MMC_DEBUG
@@ -693,7 +702,7 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 			}
 		}
 		if (status & CARD_ERR) {
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 				"Ignoring card err CMD%d\n", host->cmd->opcode);
 			if (host->cmd)
 				end_cmd = 1;
@@ -791,7 +800,7 @@ static int omap_hsmmc_switch_opcond(struct omap_hsmmc_host *host, int vdd)
 
 	return 0;
 err:
-	dev_dbg(mmc_dev(host->mmc), "Unable to switch operating voltage\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "Unable to switch operating voltage\n");
 	return ret;
 }
 
@@ -916,7 +925,7 @@ static void omap_hsmmc_dma_cb(int lch, u16 ch_status, void *data)
 	struct omap_hsmmc_host *host = data;
 
 	if (ch_status & OMAP2_DMA_MISALIGNED_ERR_IRQ)
-		dev_dbg(mmc_dev(host->mmc), "MISALIGNED_ADRS_ERR\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "MISALIGNED_ADRS_ERR\n");
 
 	if (host->dma_ch < 0)
 		return;
@@ -1062,7 +1071,7 @@ omap_hsmmc_prepare_data(struct omap_hsmmc_host *host, struct mmc_request *req)
 	if (host->use_dma) {
 		ret = omap_hsmmc_start_dma_transfer(host, req);
 		if (ret != 0) {
-			dev_dbg(mmc_dev(host->mmc), "MMC start dma failure\n");
+			omap_dev_dbg(host, mmc_dev(host->mmc), "MMC start dma failure\n");
 			return ret;
 		}
 	}
@@ -1188,7 +1197,7 @@ static void omap_hsmmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				 * vdd 1.8v.
 				 */
 			if (omap_hsmmc_switch_opcond(host, ios->vdd) != 0)
-				dev_dbg(mmc_dev(host->mmc),
+				omap_dev_dbg(host, mmc_dev(host->mmc),
 						"Switch operation failed\n");
 		}
 	}
@@ -1306,7 +1315,7 @@ static int omap_hsmmc_enabled_to_disabled(struct omap_hsmmc_host *host)
 	clk_disable(host->fclk);
 	host->dpm_state = DISABLED;
 
-	dev_dbg(mmc_dev(host->mmc), "ENABLED -> DISABLED\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "ENABLED -> DISABLED\n");
 
 	if (host->power_mode == MMC_POWER_OFF)
 		return 0;
@@ -1344,7 +1353,7 @@ static int omap_hsmmc_disabled_to_sleep(struct omap_hsmmc_host *host)
 
 	mmc_release_host(host->mmc);
 
-	dev_dbg(mmc_dev(host->mmc), "DISABLED -> %s\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "DISABLED -> %s\n",
 		host->dpm_state == CARDSLEEP ? "CARDSLEEP" : "REGSLEEP");
 
 	if ((host->mmc->caps & MMC_CAP_NONREMOVABLE) ||
@@ -1374,7 +1383,7 @@ static int omap_hsmmc_sleep_to_off(struct omap_hsmmc_host *host)
 	host->vdd = 0;
 	host->power_mode = MMC_POWER_OFF;
 
-	dev_dbg(mmc_dev(host->mmc), "%s -> OFF\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s -> OFF\n",
 		host->dpm_state == CARDSLEEP ? "CARDSLEEP" : "REGSLEEP");
 
 	host->dpm_state = OFF;
@@ -1396,7 +1405,7 @@ static int omap_hsmmc_disabled_to_enabled(struct omap_hsmmc_host *host)
 	omap_hsmmc_context_restore(host);
 	host->dpm_state = ENABLED;
 
-	dev_dbg(mmc_dev(host->mmc), "DISABLED -> ENABLED\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "DISABLED -> ENABLED\n");
 
 	return 0;
 }
@@ -1415,7 +1424,7 @@ static int omap_hsmmc_sleep_to_enabled(struct omap_hsmmc_host *host)
 	if (mmc_card_can_sleep(host->mmc))
 		mmc_card_awake(host->mmc);
 
-	dev_dbg(mmc_dev(host->mmc), "%s -> ENABLED\n",
+	omap_dev_dbg(host, mmc_dev(host->mmc), "%s -> ENABLED\n",
 		host->dpm_state == CARDSLEEP ? "CARDSLEEP" : "REGSLEEP");
 
 	host->dpm_state = ENABLED;
@@ -1436,7 +1445,7 @@ static int omap_hsmmc_off_to_enabled(struct omap_hsmmc_host *host)
 
 	host->dpm_state = ENABLED;
 
-	dev_dbg(mmc_dev(host->mmc), "OFF -> ENABLED\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "OFF -> ENABLED\n");
 
 	return 0;
 }
@@ -1457,7 +1466,7 @@ static int omap_hsmmc_enable(struct mmc_host *mmc)
 	case OFF:
 		return omap_hsmmc_off_to_enabled(host);
 	default:
-		dev_dbg(mmc_dev(host->mmc), "UNKNOWN state\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "UNKNOWN state\n");
 		return -EINVAL;
 	}
 }
@@ -1484,7 +1493,7 @@ static int omap_hsmmc_disable(struct mmc_host *mmc, int lazy)
 	case REGSLEEP:
 		return omap_hsmmc_sleep_to_off(host);
 	default:
-		dev_dbg(mmc_dev(host->mmc), "UNKNOWN state\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "UNKNOWN state\n");
 		return -EINVAL;
 	}
 }
@@ -1497,7 +1506,7 @@ static int omap_hsmmc_enable_fclk(struct mmc_host *mmc)
 	err = clk_enable(host->fclk);
 	if (err)
 		return err;
-	dev_dbg(mmc_dev(host->mmc), "mmc_fclk: enabled\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "mmc_fclk: enabled\n");
 	omap_hsmmc_context_restore(host);
 	return 0;
 }
@@ -1508,7 +1517,7 @@ static int omap_hsmmc_disable_fclk(struct mmc_host *mmc, int lazy)
 
 	omap_hsmmc_context_save(host);
 	clk_disable(host->fclk);
-	dev_dbg(mmc_dev(host->mmc), "mmc_fclk: disabled\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "mmc_fclk: disabled\n");
 	return 0;
 }
 
@@ -1719,7 +1728,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 
 		if (host->got_dbclk)
 			if (clk_enable(host->dbclk) != 0)
-				dev_dbg(mmc_dev(host->mmc), "Enabling debounce"
+				omap_dev_dbg(host, mmc_dev(host->mmc), "Enabling debounce"
 							" clk failed\n");
 	}
 
@@ -1777,14 +1786,14 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 	ret = request_irq(host->irq, omap_hsmmc_irq, IRQF_DISABLED,
 			mmc_hostname(mmc), host);
 	if (ret) {
-		dev_dbg(mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
+		omap_dev_dbg(host, mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
 		goto err_irq;
 	}
 
 	/* initialize power supplies, gpios, etc */
 	if (pdata->init != NULL) {
 		if (pdata->init(&pdev->dev) != 0) {
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 				"Unable to configure MMC IRQs\n");
 			goto err_irq_cd_init;
 		}
@@ -1799,7 +1808,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 					  | IRQF_DISABLED,
 				  mmc_hostname(mmc), host);
 		if (ret) {
-			dev_dbg(mmc_dev(host->mmc),
+			omap_dev_dbg(host, mmc_dev(host->mmc),
 				"Unable to grab MMC CD IRQ\n");
 			goto err_irq_cd;
 		}
@@ -1851,7 +1860,7 @@ err_irq:
 err1:
 	iounmap(host->base);
 err:
-	dev_dbg(mmc_dev(host->mmc), "Probe Failed\n");
+	omap_dev_dbg(host, mmc_dev(host->mmc), "Probe Failed\n");
 	release_mem_region(res->start, res->end - res->start + 1);
 	if (host)
 		mmc_free_host(mmc);
@@ -1909,7 +1918,7 @@ static int omap_hsmmc_suspend(struct platform_device *pdev, pm_message_t state)
 			ret = host->pdata->suspend(&pdev->dev,
 							host->slot_id);
 			if (ret) {
-				dev_dbg(mmc_dev(host->mmc),
+				omap_dev_dbg(host, mmc_dev(host->mmc),
 					"Unable to handle MMC board"
 					" level suspend\n");
 				host->suspended = 0;
@@ -1936,7 +1945,7 @@ static int omap_hsmmc_suspend(struct platform_device *pdev, pm_message_t state)
 				ret = host->pdata->resume(&pdev->dev,
 							  host->slot_id);
 				if (ret)
-					dev_dbg(mmc_dev(host->mmc),
+					omap_dev_dbg(host, mmc_dev(host->mmc),
 						"Unmask interrupt failed\n");
 			}
 			mmc_host_disable(host->mmc);
@@ -1973,7 +1982,7 @@ static int omap_hsmmc_resume(struct platform_device *pdev)
 		if (host->pdata->resume) {
 			ret = host->pdata->resume(&pdev->dev, host->slot_id);
 			if (ret)
-				dev_dbg(mmc_dev(host->mmc),
+				omap_dev_dbg(host, mmc_dev(host->mmc),
 					"Unmask interrupt failed\n");
 		}
 
@@ -1990,7 +1999,7 @@ static int omap_hsmmc_resume(struct platform_device *pdev)
 	return ret;
 
 clk_en_err:
-	dev_dbg(mmc_dev(host->mmc),
+	omap_dev_dbg(host, mmc_dev(host->mmc),
 		"Failed to enable MMC clocks during resume\n");
 	return ret;
 }
