@@ -288,5 +288,14 @@ static inline void mmc_set_disable_delay(struct mmc_host *host,
 	host->disable_delay = disable_delay;
 }
 
+#ifdef CONFIG_MMC_DEBUG_INDIVIDUAL
+#define mmc_pr_debug(host, fmt, ...) do { 	\
+			if (CONFIG_MMC_DEBUG_CHANNEL == (host->index)) 	\
+				pr_debug(fmt, ##__VA_ARGS__); 	\
+		} while (0)
+#else
+#define mmc_pr_debug(host, fmt, ...) 	pr_debug(fmt, ##__VA_ARGS__)
+#endif
+
 #endif
 
