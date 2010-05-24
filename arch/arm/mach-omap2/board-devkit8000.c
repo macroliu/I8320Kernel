@@ -40,31 +40,25 @@
 #include <asm/mach/map.h>
 #include <asm/mach/flash.h>
 
-#include <mach/board.h>
-#include <mach/usb.h>
-#include <mach/common.h>
-#include <mach/gpmc.h>
-#include <mach/nand.h>
-#include <mach/control.h>
-#include <mach/mux.h>
-#include <mach/display.h>
-#include <mach/omap-pm.h>
-#include <mach/clock.h>
-#include <mach/mmc.h>
+#include <plat/board.h>
+#include <plat/usb.h>
+#include <plat/common.h>
+#include <plat/gpmc.h>
+#include <plat/nand.h>
+#include <plat/control.h>
+#include <plat/mux.h>
+#include <plat/display.h>
+#include <plat/omap-pm.h>
+#include <plat/clock.h>
+#include <plat/mmc.h>
 
-#include <mach/mcspi.h>
+#include <plat/mcspi.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
 #include <linux/dm9000.h>
-/* TODO
-#include <linux/input/matrix_keypad.h>
-#include <linux/usb/otg.h>
-#include <linux/interrupt.h>
-*/
 
 #include "sdram-micron-mt46h32m32lf-6.h"
 
-#include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
 #include "pm.h"
 #include "omap3-opp.h"
@@ -243,9 +237,11 @@ static struct regulator_consumer_supply devkit8000_vdds_dsi_supply = {
 	.dev	= &devkit8000_dss_device.dev,
 };
 
+/* XXX
 static struct omap_uart_config devkit8000_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
+*/
 
 static struct twl4030_usb_data devkit8000_usb_data = {
 	.usb_mode	= T2_USB_MODE_ULPI,
@@ -658,7 +654,8 @@ static inline int devkit8000_mux_init() { return 0; }
 static void __init devkit8000_init_irq(void)
 {
 	devkit8000_mux_init();
-	omap2_init_common_hw(mt46h32m32lf6_sdrc_params, omap3_mpu_rate_table,
+	omap2_init_common_hw(mt46h32m32lf6_sdrc_params,
+			     mt46h32m32lf6_sdrc_params, omap3_mpu_rate_table,
 			     omap3_dsp_rate_table, omap3_l3_rate_table);
 	omap_init_irq();
 	omap_gpio_init();
@@ -806,7 +803,9 @@ static struct platform_device omap_dm9000_dev = {
 };
 
 static struct omap_board_config_kernel devkit8000_config[] __initdata = {
+/* XXX
 	{ OMAP_TAG_UART,	&devkit8000_uart_config },
+*/
 };
 
 static struct platform_device *devkit8000_devices[] __initdata = {
@@ -854,6 +853,18 @@ static void __init devkit8000_flash_init(void)
 	}
 }
 
+static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
+
+	.port_mode[0] = EHCI_HCD_OMAP_MODE_PHY,
+	.port_mode[1] = EHCI_HCD_OMAP_MODE_PHY,
+	.port_mode[2] = EHCI_HCD_OMAP_MODE_UNKNOWN,
+
+	.phy_reset  = true,
+	.reset_gpio_port[0]  = -EINVAL,
+	.reset_gpio_port[1]  = -EINVAL,
+	.reset_gpio_port[2]  = -EINVAL
+};
+
 static void __init devkit8000_init(void)
 {
 	devkit8000_i2c_init();
@@ -869,7 +880,7 @@ static void __init devkit8000_init(void)
 	omap_cfg_reg(J25_34XX_GPIO170);
 
 	usb_musb_init();
-	usb_ehci_init();
+	usb_ehci_init(&ehci_pdata);
 	devkit8000_flash_init();
 }
 
