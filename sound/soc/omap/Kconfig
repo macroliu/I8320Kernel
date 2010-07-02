@@ -34,6 +34,16 @@ config SND_OMAP_SOC_AMS_DELTA
 	  	ACTION=="add", KERNEL=="controlC0", \
 				RUN+="/usr/sbin/ldattach 19 /dev/ttyS3"
 
+config SND_OMAP_SOC_OMAP3_BEAGLE
+	tristate "SoC Audio support for OMAP3 Beagle and Devkit8000"
+	depends on SND_OMAP_SOC
+	depends on (MACH_OMAP3_BEAGLE || MACH_DEVKIT8000)
+	select SND_OMAP_SOC_MCBSP
+	select SND_SOC_CX20442
+	help
+	  Say Y if you want to add support for SoC audio on the Beagleboard or
+          the clone Devkit8000.
+
 config SND_OMAP_SOC_OSK5912
 	tristate "SoC Audio support for omap osk5912"
 	depends on SND_OMAP_SOC && MACH_OMAP_OSK && I2C
