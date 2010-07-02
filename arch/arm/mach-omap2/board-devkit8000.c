@@ -258,6 +258,7 @@ static char *usb_functions_adb[] = {
 
 static char *usb_functions_all[] = {
 	"adb",
+	"usb_mass_storage",
 };
 
 static struct android_usb_product usb_products[] = {
