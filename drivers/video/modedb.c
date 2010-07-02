@@ -272,6 +272,18 @@ static const struct fb_videomode modedb[] = {
        /* 800x520i @ 50 Hz, 15.625 kHz hsync (PAL RGB) */
        NULL, 50, 800, 520, 58823, 144, 64, 72, 28, 80, 5,
        0, FB_VMODE_INTERLACED
+    }, {
+        /* 480x272 @ 60 Hz, AT043TN13 LCD */
+        NULL, 60, 480, 272, KHZ2PICOS(9009), 2, 2, 2, 2, 41, 10,
+	0, FB_VMODE_NONINTERLACED
+    }, {
+        /* 640x480 @ 60 Hz, AT056TN52 LCD */
+        NULL, 60, 640, 480, KHZ2PICOS(25000), 16, 134, 32, 11, 10, 2,
+	0, FB_VMODE_NONINTERLACED
+    }, {
+	/* 800x480 @ 60 Hz, AT070TN83 LCD */
+	NULL, 60, 800, 480, KHZ2PICOS(30000), 40, 40, 13, 29, 48, 3,
+	0, FB_VMODE_NONINTERLACED
     },
 };
 
