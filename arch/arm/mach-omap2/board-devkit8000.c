@@ -849,6 +849,23 @@ static struct platform_device omap_dm9000_dev = {
 	},
 };
 
+#define DIE_ID_REG_BASE		(L4_WK_34XX_PHYS + 0xA000)
+#define DIE_ID_REG_OFFSET	0x218
+
+static void __init devkit8000_dm9000_mac_init (void) {
+	unsigned char *eth_addr = omap_dm9000_platdata.dev_addr;
+	unsigned int die_id_0;
+	unsigned int reg;
+	reg = DIE_ID_REG_BASE + DIE_ID_REG_OFFSET;
+	die_id_0 = omap_readl(reg);
+	eth_addr[0] = 0x02; /* locally administered */
+	eth_addr[1] = omap_readl(reg + 4) & 0xff;
+	eth_addr[2] = (die_id_0 & 0xff000000) >> 24;
+	eth_addr[3] = (die_id_0 & 0x00ff0000) >> 16;
+	eth_addr[4] = (die_id_0 & 0x0000ff00) >> 8;
+	eth_addr[5] = (die_id_0 & 0x000000ff);
+}
+
 static struct omap_board_config_kernel devkit8000_config[] __initdata = {
 /* XXX
 	{ OMAP_TAG_UART,	&devkit8000_uart_config },
@@ -914,6 +931,7 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 
 static void __init devkit8000_init(void)
 {
+	devkit8000_dm9000_mac_init();
 	devkit8000_i2c_init();
 	platform_add_devices(devkit8000_devices,
 			ARRAY_SIZE(devkit8000_devices));
