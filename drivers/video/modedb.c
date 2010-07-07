@@ -274,7 +274,7 @@ static const struct fb_videomode modedb[] = {
        0, FB_VMODE_INTERLACED
     }, {
         /* 480x272 @ 60 Hz, AT043TN13 LCD */
-        NULL, 60, 480, 272, KHZ2PICOS(9009), 2, 2, 2, 2, 41, 10,
+        NULL, 60, 480, 272, KHZ2PICOS(9009), 2, 41, 2, 10, 2, 2,
 	0, FB_VMODE_NONINTERLACED
     }, {
         /* 640x480 @ 60 Hz, AT056TN52 LCD */
