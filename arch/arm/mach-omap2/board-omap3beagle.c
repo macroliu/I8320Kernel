@@ -432,16 +432,36 @@ static struct i2c_board_info __initdata beagle_i2c2_boardinfo[] = {
 };
 #endif
 
+#define OMAP3_BEAGLE_I2C2_SCL_GPIO  168
+
 static int __init omap3_beagle_i2c_init(void)
 {
+	int i2c_scl = OMAP3_BEAGLE_I2C2_SCL_GPIO;
+
 	omap_register_i2c_bus(1, 2600, beagle_i2c_boardinfo,
 			ARRAY_SIZE(beagle_i2c_boardinfo));
 
+	/* here we need to check signals on I2C bus2
+	 * are pull-up externally
+	 */
+	omap_cfg_reg(AF15_34XX_GPIO168);
+	if (gpio_request(i2c_scl, "AF15_34XX_GPIO168") < 0){
+		printk(KERN_ERR "Failed to request GPIO%d for I2C bus2 check", i2c_scl);
+	}
+
+	gpio_direction_input(i2c_scl);
+	if (gpio_get_value(i2c_scl)) {
 #if defined CONFIG_INPUT_ST_MOTION_SENSOR
-	omap_cfg_reg(AE4_34XX_GPIO136);
-	omap_register_i2c_bus(2, 400, beagle_i2c2_boardinfo,
-			ARRAY_SIZE(beagle_i2c2_boardinfo));
+		omap_cfg_reg(AE4_34XX_GPIO136);
+		omap_register_i2c_bus(2, 400, beagle_i2c2_boardinfo,
+				ARRAY_SIZE(beagle_i2c2_boardinfo));
+#else
+		omap_register_i2c_bus(2, 400, NULL, 0);
 #endif
+	}else {
+		printk(KERN_ERR "I2C bus2 does not have external pull-up, drop i2c_bus2 registration\n");
+	}
+
 	/* Bus 3 is attached to the DVI port where devices like the pico DLP
 	 * projector don't work reliably with 400kHz */
 	omap_register_i2c_bus(3, 100, NULL, 0);
@@ -519,6 +539,7 @@ static void __init omap3_beagle_init_irq(void)
 #endif
 	omap_gpio_init();
 }
+
 
 static struct platform_device *omap3_beagle_devices[] __initdata = {
 	&beagle_dss_device,
