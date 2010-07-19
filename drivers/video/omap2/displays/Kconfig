@@ -30,4 +30,10 @@ config PANEL_SHOLES
         help
 	  LCD Panel used in sholes
 
+config PANEL_TL2796
+        tristate "Samsung tl2796 Panel"
+        depends on OMAP2_DSS
+        help
+          Samsung tl2796 panel used on the NOWPLUS board
+
 endmenu

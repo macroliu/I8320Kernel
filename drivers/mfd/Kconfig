@@ -123,7 +123,7 @@ config TWL4030_POWER
 
 config TWL4030_CODEC
 	bool
-	depends on TWL4030_CORE
+	depends on TWL4030_CORE=y
 	select MFD_CORE
 	default n
 

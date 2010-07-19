@@ -136,6 +136,10 @@ config MACH_OMAP_ZOOM2
 config MACH_OMAP_ZOOM3
 	bool "OMAP3630 Zoom3 board"
 
+config MACH_OMAP_NOWPLUS
+       bool "OMAP3 NOWPLUS board"
+       depends on ARCH_OMAP3 && ARCH_OMAP34XX
+       
 config MACH_SHOLES
 	bool "Motorola sholes"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX

@@ -109,3 +109,13 @@ config SND_OMAP_SOC_ZOOM2
 	help
 	  Say Y if you want to add support for Soc audio on Zoom2 board.
 
+config SND_OMAP_SOC_NOWPLUS
+	tristate "SoC Audio support for NOWPLUS"
+	depends on TWL4030_CORE && SND_OMAP_SOC && MACH_OMAP_NOWPLUS
+	select SND_OMAP_SOC_MCBSP
+	select SND_SOC_TWL4030
+	select SND_SOC_MAX9877
+	help
+	  Say Y if you want to add support for Soc audio on the NOWPLUS board.
+
+
